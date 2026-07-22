@@ -58,6 +58,7 @@ async def root():
         "version": "1.0.0",
         "status": "running",
         "docs": "/docs",
+        "model": settings.gemini_model,
     }
 
 

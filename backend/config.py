@@ -6,7 +6,7 @@ from typing import Optional
 class Settings(BaseSettings):
     # Gemini
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-3.5-flash"
 
     # Voyage AI
     voyage_api_key: Optional[str] = None
