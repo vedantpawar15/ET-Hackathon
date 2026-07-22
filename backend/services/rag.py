@@ -32,13 +32,29 @@ def retrieve_chunks(
 
 def compute_confidence(chunks: list[dict]) -> float:
     """
-    Confidence score = mean cosine similarity of retrieved chunks.
-    Similarity is already 0-1 from the SQL function (1 - cosine_distance).
+    Calibrate confidence score.
+    Maps similarity of the top retrieved chunks from the narrow embedding range [0.65, 0.85]
+    to a wide confidence range [0.0, 1.0]. Drops sharply to 0.0 for similarities below 0.65.
     """
     if not chunks:
         return 0.0
-    scores = [c.get("similarity", 0.0) for c in chunks]
-    return round(sum(scores) / len(scores), 3)
+    
+    # Take the top 2 chunks (or 1 if only 1 exists) as they determine if we have a match
+    top_chunks = chunks[:2]
+    scores = [c.get("similarity", 0.0) for c in top_chunks]
+    avg_sim = sum(scores) / len(scores)
+    
+    min_threshold = 0.65
+    max_threshold = 0.85
+    
+    if avg_sim <= min_threshold:
+        return 0.0
+    if avg_sim >= max_threshold:
+        return 1.0
+        
+    # Linear scaling between min_threshold and max_threshold
+    calibrated = (avg_sim - min_threshold) / (max_threshold - min_threshold)
+    return round(calibrated, 3)
 
 
 async def chat(
