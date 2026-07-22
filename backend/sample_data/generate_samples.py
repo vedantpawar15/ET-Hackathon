@@ -758,7 +758,27 @@ def save_as_pdf(doc: dict) -> Path:
     pdf.add_page()
     pdf.set_font("Helvetica", size=10)
 
+    # Clean characters that core Helvetica doesn't support
+    replacements = {
+        "\u2014": "-",  # em-dash
+        "\u2013": "-",  # en-dash
+        "\u201c": '"',  # smart double quotes
+        "\u201d": '"',
+        "\u2018": "'",  # smart single quotes
+        "\u2019": "'",
+        "\u2713": "PASS",  # checkmark ✓
+        "\u2714": "PASS",
+        "\u2717": "FAIL",  # cross
+        "\u2718": "FAIL",
+        "\u00b3": "3",  # cube sign ³
+    }
+
     for line in doc["content"].split("\n"):
+        for orig, repl in replacements.items():
+            line = line.replace(orig, repl)
+        # Encode to latin-1, replacing any unhandled unicode characters
+        line = line.encode("latin-1", errors="replace").decode("latin-1")
+
         # Simple bold for ALL-CAPS lines (section headers)
         if line.isupper() and len(line) > 3:
             pdf.set_font("Helvetica", style="B", size=11)
