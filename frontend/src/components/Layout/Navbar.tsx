@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function Navbar() {
-  const [model, setModel] = useState('Gemini 3.5 Flash')
+  const [model, setModel] = useState('Expert Knowledge 1.5')
 
   return (
     <header className="h-14 border-b border-zinc-200/80 bg-white/95 flex items-center justify-between px-6 flex-shrink-0 z-10">
@@ -18,7 +18,7 @@ export default function Navbar() {
             }}
             className="appearance-none bg-transparent hover:bg-zinc-100/80 text-zinc-950 font-semibold text-sm pl-3 pr-8 py-1.5 rounded-lg cursor-pointer transition-colors outline-none flex items-center gap-1.5"
           >
-            <option value="Gemini 3.5 Flash">Gemini 3.5 Flash</option>
+            <option value="Expert Knowledge 1.5">Expert Knowledge 1.5</option>
             <option value="Voyage AI Embeddings">Voyage AI Embeddings</option>
             <option value="Local Embeddings Fallback">Local bge-large</option>
           </select>

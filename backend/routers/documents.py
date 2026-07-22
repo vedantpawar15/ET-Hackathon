@@ -12,7 +12,14 @@ from services.graph_builder import extract_and_store_entities
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
-ALLOWED_TYPES = {"application/pdf", "application/octet-stream"}
+ALLOWED_TYPES = {
+    "application/pdf", 
+    "application/msword", 
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/octet-stream"
+}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
@@ -26,8 +33,8 @@ async def upload_document(
     Extraction, chunking, and embedding happen synchronously.
     Entity extraction runs in the background.
     """
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    if not (file.filename.lower().endswith(".pdf") or file.filename.lower().endswith((".doc", ".docx", ".xls", ".xlsx"))):
+        raise HTTPException(status_code=400, detail="Only PDF, Word, and Excel files are supported.")
 
     file_bytes = await file.read()
     if len(file_bytes) > MAX_FILE_SIZE:

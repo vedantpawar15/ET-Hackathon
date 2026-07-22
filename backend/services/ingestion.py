@@ -89,6 +89,48 @@ def _ocr_pdf(file_bytes: bytes, filename: str) -> list[dict]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Word and Excel Text Extraction
+# ─────────────────────────────────────────────────────────────────────────────
+
+def extract_text_from_word(file_bytes: bytes, filename: str) -> list[dict]:
+    try:
+        import docx
+        doc = docx.Document(io.BytesIO(file_bytes))
+        full_text = []
+        for para in doc.paragraphs:
+            full_text.append(para.text)
+        text = "\n".join(full_text)
+        return [{"page_number": 1, "text": text.strip()}]
+    except Exception as exc:
+        logger.error(f"[{filename}] Word extraction failed: {exc}")
+        return []
+
+def extract_text_from_excel(file_bytes: bytes, filename: str) -> list[dict]:
+    try:
+        import pandas as pd
+        # Read all sheets
+        xls = pd.read_excel(io.BytesIO(file_bytes), sheet_name=None)
+        pages = []
+        for i, (sheet_name, df) in enumerate(xls.items(), 1):
+            text = f"Sheet: {sheet_name}\n" + df.to_string()
+            pages.append({"page_number": i, "text": text.strip()})
+        return pages
+    except Exception as exc:
+        logger.error(f"[{filename}] Excel extraction failed: {exc}")
+        return []
+
+def extract_text(file_bytes: bytes, filename: str) -> list[dict]:
+    lower = filename.lower()
+    if lower.endswith(".pdf"):
+        return extract_text_from_pdf(file_bytes, filename)
+    elif lower.endswith(".docx") or lower.endswith(".doc"):
+        return extract_text_from_word(file_bytes, filename)
+    elif lower.endswith(".xlsx") or lower.endswith(".xls"):
+        return extract_text_from_excel(file_bytes, filename)
+    else:
+        raise ValueError(f"Unsupported file format: {filename}")
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Text Chunking
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -184,7 +226,7 @@ async def ingest_document(
 
     try:
         # ── 2. Extract text ──────────────────────────────────────────────────
-        pages = extract_text_from_pdf(file_bytes, filename)
+        pages = extract_text(file_bytes, filename)
         page_count = len(pages)
 
         # ── 3. Chunk ─────────────────────────────────────────────────────────

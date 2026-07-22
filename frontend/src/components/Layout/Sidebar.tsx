@@ -30,8 +30,9 @@ export default function Sidebar() {
 
   const onDrop = async (files: File[]) => {
     for (const file of files) {
-      if (!file.name.toLowerCase().endsWith('.pdf')) {
-        toast.error(`${file.name} — only PDFs are supported.`)
+      const lowerName = file.name.toLowerCase()
+      if (!lowerName.endsWith('.pdf') && !lowerName.endsWith('.doc') && !lowerName.endsWith('.docx') && !lowerName.endsWith('.xls') && !lowerName.endsWith('.xlsx')) {
+        toast.error(`${file.name} — unsupported file type.`)
         continue
       }
       const toastId = toast.loading(`Uploading ${file.name}…`)
@@ -47,7 +48,13 @@ export default function Sidebar() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'application/pdf': ['.pdf'] },
+    accept: { 
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+    },
     noClick: true,
   })
 
@@ -139,7 +146,7 @@ export default function Sidebar() {
             >
               <Upload size={16} className="mx-auto mb-1 text-zinc-500" />
               <p className="text-[10px] font-medium text-zinc-600">
-                {isDragActive ? 'Drop PDFs here' : 'Click to Upload Doc'}
+                {isDragActive ? 'Drop files here' : 'Click to Upload Doc'}
               </p>
             </div>
             
