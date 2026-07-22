@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react'
 import ForceGraph2D from 'react-force-graph-2d'
 import { useAppStore } from '@/store'
-import { RefreshCw, Loader2, Info, ZoomIn, ZoomOut } from 'lucide-react'
-import type { GraphNode, GraphLink } from '@/types'
+import { RefreshCw, Loader2, Info } from 'lucide-react'
+import type { GraphNode } from '@/types'
 
 const ENTITY_LABELS: Record<string, string> = {
   equipment:    'Equipment',

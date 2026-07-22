@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MessageSquare, Network, FileText, ShieldCheck, Upload, PanelLeftClose, PanelLeft, Plus, LogIn, LogOut, User } from 'lucide-react'
+import { MessageSquare, Network, FileText, ShieldCheck, Upload, PanelLeftClose, PanelLeft, Plus, LogIn, LogOut } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { supabase } from '@/lib/supabase'
 import { useDropzone } from 'react-dropzone'
@@ -16,7 +16,7 @@ export default function Sidebar() {
       setSession(null)
       setSkipAuth(false)
       toast.success('Signed out successfully')
-    } catch (error: any) {
+    } catch {
       toast.error('Failed to sign out')
     }
   }

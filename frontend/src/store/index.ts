@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ChatMessage, Document, GraphData, GraphNode } from '@/types'
+import type { ChatMessage, Document, GraphData } from '@/types'
 import type { Session } from '@supabase/supabase-js'
 import { listDocuments, getGraph } from '@/api'
 
@@ -41,7 +41,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
   session: null,
   setSession: (session) => set({ session }),
   skipAuth: false,

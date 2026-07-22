@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { ShieldCheck, Loader2, AlertTriangle, CheckCircle, MinusCircle, HelpCircle } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { checkCompliance } from '@/api'
-import type { ComplianceResult, ComplianceItem } from '@/types'
+import type { ComplianceResult } from '@/types'
 import toast from 'react-hot-toast'
 
 const STATUS_CONFIG = {

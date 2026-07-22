@@ -27,14 +27,14 @@ export default function App() {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [setSession])
 
   useEffect(() => {
     if (session || skipAuth) {
       fetchDocuments()
       fetchGraph()
     }
-  }, [session, skipAuth])
+  }, [session, skipAuth, fetchDocuments, fetchGraph])
 
   if (initializing) {
     return <div className="h-screen w-screen flex items-center justify-center bg-zinc-50/30"></div>

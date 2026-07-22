@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useAppStore } from '@/store'
-import { FileText, Trash2, Calendar, Hash, AlertCircle, CheckCircle, Clock, Eye } from 'lucide-react'
+import { FileText, Trash2, AlertCircle, CheckCircle, Clock, Eye } from 'lucide-react'
 import { deleteDocument } from '@/api'
 import toast from 'react-hot-toast'
 import type { Document } from '@/types'
