@@ -96,9 +96,24 @@ async def get_document(doc_id: str):
 
 @router.delete("/{doc_id}")
 async def delete_document(doc_id: str):
-    """Delete a document and all its chunks/entities (CASCADE in DB)."""
+    """Delete a document and all its chunks, entities, and relationships to prevent orphans."""
     supabase = get_supabase()
-    result = supabase.table("documents").delete().eq("id", doc_id).execute()
-    if not result.data:
-        raise HTTPException(status_code=404, detail="Document not found.")
-    return {"success": True, "deleted_id": doc_id}
+    try:
+        # Delete related relationships first (referencing entities and document)
+        supabase.table("relationships").delete().eq("document_id", doc_id).execute()
+        
+        # Delete related entities (referencing document)
+        supabase.table("entities").delete().eq("document_id", doc_id).execute()
+        
+        # Delete related chunks (referencing document)
+        supabase.table("chunks").delete().eq("document_id", doc_id).execute()
+        
+        # Delete the document record itself
+        result = supabase.table("documents").delete().eq("id", doc_id).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Document not found.")
+        return {"success": True, "deleted_id": doc_id}
+    except Exception as exc:
+        logger.error(f"Failed to delete document {doc_id}: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
