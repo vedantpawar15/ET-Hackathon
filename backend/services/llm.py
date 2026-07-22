@@ -155,14 +155,16 @@ def build_compliance_prompt(regulation_text: str, procedure_text: str) -> str:
 ## Procedure Document:
 {procedure_text[:3000]}
 
-Return a JSON array of compliance items:
-[
-  {{
-    "requirement": "specific requirement from regulation",
-    "status": "compliant|non_compliant|partial|not_assessed",
-    "evidence": "relevant text from procedure, or explanation of gap",
-    "severity": "critical|high|medium|low"
-  }}
-]
+Return a JSON object containing an "items" array with compliance gaps:
+{{
+  "items": [
+    {{
+      "requirement": "specific requirement from regulation",
+      "status": "compliant|non_compliant|partial|not_assessed",
+      "evidence": "relevant text from procedure, or explanation of gap",
+      "severity": "critical|high|medium|low"
+    }}
+  ]
+}}
 
 Return ONLY valid JSON."""

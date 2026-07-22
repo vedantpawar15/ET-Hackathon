@@ -44,7 +44,12 @@ async def check_compliance(req: ComplianceRequest):
     items = generate_json(prompt)
 
     if not isinstance(items, list):
-        items = items.get("items", []) if isinstance(items, dict) else []
+        if isinstance(items, dict):
+            # Extract the first list found in the dictionary values (handles {"items": []}, {"compliance_items": []}, etc.)
+            extracted_list = next((v for v in items.values() if isinstance(v, list)), [])
+            items = extracted_list
+        else:
+            items = []
 
     return {
         "regulation_doc": reg_name,
