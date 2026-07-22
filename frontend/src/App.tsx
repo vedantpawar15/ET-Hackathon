@@ -11,7 +11,7 @@ import ComplianceView from '@/components/Compliance/ComplianceView'
 import AuthView from '@/components/Auth/AuthView'
 
 export default function App() {
-  const { activeTab, fetchDocuments, fetchGraph, session, setSession, skipAuth } = useAppStore()
+  const { activeTab, fetchDocuments, fetchGraph, session, setSession, skipAuth, documents } = useAppStore()
   const [initializing, setInitializing] = useState(true)
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export default function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session)
     })
 
@@ -35,6 +35,19 @@ export default function App() {
       fetchGraph()
     }
   }, [session, skipAuth, fetchDocuments, fetchGraph])
+
+  // Poll for document status updates if any document is processing
+  useEffect(() => {
+    const hasProcessing = documents.some((doc) => doc.status === 'processing')
+    if (!hasProcessing) return
+
+    const interval = setInterval(() => {
+      fetchDocuments()
+      fetchGraph()
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [documents, fetchDocuments, fetchGraph])
 
   if (initializing) {
     return <div className="h-screen w-screen flex items-center justify-center bg-zinc-50/30"></div>
@@ -63,7 +76,7 @@ export default function App() {
     <div className="h-screen w-screen flex overflow-hidden bg-zinc-50/30">
       {/* Full-height Sidebar on the Left */}
       <Sidebar />
-      
+
       {/* Right container for Header + Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar />
@@ -74,7 +87,7 @@ export default function App() {
           {activeTab === 'compliance' && <ComplianceView />}
         </main>
       </div>
-      
+
       <Toaster
         position="bottom-right"
         toastOptions={{
