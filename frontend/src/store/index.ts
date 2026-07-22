@@ -1,8 +1,16 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { ChatMessage, Document, GraphData, GraphNode } from '@/types'
+import type { Session } from '@supabase/supabase-js'
 import { listDocuments, getGraph } from '@/api'
 
 interface AppState {
+  // Auth
+  session: Session | null
+  setSession: (session: Session | null) => void
+  skipAuth: boolean
+  setSkipAuth: (skip: boolean) => void
+
   // Sidebar / nav
   activeTab: 'chat' | 'graph' | 'documents' | 'compliance'
   setActiveTab: (tab: AppState['activeTab']) => void
@@ -31,7 +39,14 @@ interface AppState {
   setFilterDocId: (id: string | null) => void
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+  session: null,
+  setSession: (session) => set({ session }),
+  skipAuth: false,
+  setSkipAuth: (skipAuth) => set({ skipAuth }),
+
   activeTab: 'chat',
   setActiveTab: (tab) => set({ activeTab: tab }),
 
@@ -77,4 +92,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   filterDocId: null,
   setFilterDocId: (id) => set({ filterDocId: id }),
-}))
+    }),
+    {
+      name: 'chat-storage',
+      partialize: (state) => ({ messages: state.messages }),
+    }
+  )
+)

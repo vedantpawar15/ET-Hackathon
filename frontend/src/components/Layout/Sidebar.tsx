@@ -1,13 +1,25 @@
 import React, { useState } from 'react'
-import { MessageSquare, Network, FileText, ShieldCheck, Upload, PanelLeftClose, PanelLeft, Plus, LogIn } from 'lucide-react'
+import { MessageSquare, Network, FileText, ShieldCheck, Upload, PanelLeftClose, PanelLeft, Plus, LogIn, LogOut, User } from 'lucide-react'
 import { useAppStore } from '@/store'
+import { supabase } from '@/lib/supabase'
 import { useDropzone } from 'react-dropzone'
 import toast from 'react-hot-toast'
 import { uploadDocument } from '@/api'
 
 export default function Sidebar() {
-  const { activeTab, setActiveTab, documents, addDocument, clearMessages } = useAppStore()
+  const { activeTab, setActiveTab, documents, addDocument, clearMessages, session, setSession, setSkipAuth } = useAppStore()
   const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      setSession(null)
+      setSkipAuth(false)
+      toast.success('Signed out successfully')
+    } catch (error: any) {
+      toast.error('Failed to sign out')
+    }
+  }
 
   const NAV_ITEMS = [
     { id: 'chat',       label: isCollapsed ? '' : 'Chat',               icon: MessageSquare },
@@ -141,18 +153,35 @@ export default function Sidebar() {
 
       {/* User Login Button / Profile at the bottom */}
       <div className="p-3 border-t border-zinc-200/80">
-        <button 
-          type="button"
-          onClick={() => toast.success('Signed in as Guest User')}
-          className={`
-            flex items-center gap-3 p-2 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/50 w-full transition-colors
-            ${isCollapsed ? 'justify-center' : ''}
-          `}
-          title={isCollapsed ? 'Sign in' : ''}
-        >
-          <LogIn size={16} className="flex-shrink-0" />
-          {!isCollapsed && <span>Sign in</span>}
-        </button>
+        {session ? (
+          <button 
+            type="button"
+            onClick={handleSignOut}
+            className={`
+              flex items-center gap-3 p-2 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/50 w-full transition-colors
+              ${isCollapsed ? 'justify-center' : ''}
+            `}
+            title={isCollapsed ? 'Sign out' : ''}
+          >
+            <LogOut size={16} className="flex-shrink-0 text-red-500" />
+            {!isCollapsed && <span className="truncate flex-1 text-left text-zinc-700">{session.user.email} <span className="text-zinc-400">(Sign out)</span></span>}
+          </button>
+        ) : (
+          <button 
+            type="button"
+            onClick={() => {
+              setSkipAuth(false)
+            }}
+            className={`
+              flex items-center gap-3 p-2 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/50 w-full transition-colors
+              ${isCollapsed ? 'justify-center' : ''}
+            `}
+            title={isCollapsed ? 'Sign in' : ''}
+          >
+            <LogIn size={16} className="flex-shrink-0" />
+            {!isCollapsed && <span>Sign in</span>}
+          </button>
+        )}
       </div>
     </aside>
   )

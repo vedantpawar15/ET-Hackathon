@@ -1,20 +1,63 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { useAppStore } from '@/store'
+import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Layout/Sidebar'
 import Navbar from '@/components/Layout/Navbar'
 import ChatView from '@/components/Chat/ChatView'
 import GraphView from '@/components/Graph/GraphView'
 import DocumentsView from '@/components/Documents/DocumentsView'
 import ComplianceView from '@/components/Compliance/ComplianceView'
+import AuthView from '@/components/Auth/AuthView'
 
 export default function App() {
-  const { activeTab, fetchDocuments, fetchGraph } = useAppStore()
+  const { activeTab, fetchDocuments, fetchGraph, session, setSession, skipAuth } = useAppStore()
+  const [initializing, setInitializing] = useState(true)
 
   useEffect(() => {
-    fetchDocuments()
-    fetchGraph()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setInitializing(false)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (session || skipAuth) {
+      fetchDocuments()
+      fetchGraph()
+    }
+  }, [session, skipAuth])
+
+  if (initializing) {
+    return <div className="h-screen w-screen flex items-center justify-center bg-zinc-50/30"></div>
+  }
+
+  if (!session && !skipAuth) {
+    return (
+      <>
+        <AuthView />
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#18181b',
+              color: '#fafafa',
+              border: '1px solid rgba(0,0,0,0.08)',
+              borderRadius: '12px',
+            },
+          }}
+        />
+      </>
+    )
+  }
 
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-zinc-50/30">

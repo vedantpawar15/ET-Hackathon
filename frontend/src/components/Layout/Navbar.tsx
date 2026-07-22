@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronDown, ExternalLink } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function Navbar() {
@@ -29,37 +29,6 @@ export default function Navbar() {
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="System online" />
       </div>
 
-      {/* Right: Actions and Sign in */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-4 text-xs font-medium text-zinc-600">
-          <a
-            href="https://github.com/vedantpawar15/ET-Hackathon"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-zinc-950 flex items-center gap-1 transition-colors"
-          >
-            Source Code
-            <ExternalLink size={10} />
-          </a>
-          <a
-            href="/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-zinc-950 flex items-center gap-1 transition-colors"
-          >
-            API Docs
-            <ExternalLink size={10} />
-          </a>
-        </div>
-        
-        <button
-          type="button"
-          onClick={() => toast.success('Login feature is a placeholder')}
-          className="bg-zinc-900 hover:bg-zinc-800 text-white font-medium text-xs px-3.5 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm"
-        >
-          Sign in
-        </button>
-      </div>
     </header>
   )
 }
