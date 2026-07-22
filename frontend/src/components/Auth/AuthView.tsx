@@ -62,11 +62,11 @@ export default function AuthView() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 border border-zinc-100 flex flex-col items-center">
         {/* Logo */}
         <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6">
-          <span className="text-white text-2xl font-bold">Z</span>
+          <span className="text-white text-2xl font-bold">H</span>
         </div>
 
         {/* Headings */}
-        <h1 className="text-2xl font-semibold text-zinc-900 mb-2">Welcome to Z.ai</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900 mb-2">Welcome to Helper AI</h1>
         <p className="text-zinc-500 text-sm mb-8">Unlock all features by logging in</p>
 
         {/* Buttons */}

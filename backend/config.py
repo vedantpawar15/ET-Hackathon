@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash"
 
+    # OpenRouter (OpenAI-compatible, used as fallback when Gemini quota is exhausted)
+    openrouter_api_key: Optional[str] = None
+    openrouter_model: str = "openai/gpt-4o-mini"
+
     # Voyage AI
     voyage_api_key: Optional[str] = None
     voyage_model: str = "voyage-2"

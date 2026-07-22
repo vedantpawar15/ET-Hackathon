@@ -20,7 +20,11 @@ def _get_local_model():
     if _local_model is None:
         from sentence_transformers import SentenceTransformer
         logger.info("Loading local fallback embedding model (BAAI/bge-large-en-v1.5)…")
-        _local_model = SentenceTransformer("BAAI/bge-large-en-v1.5")
+        _local_model = SentenceTransformer(
+            "BAAI/bge-large-en-v1.5", 
+            device="cpu",
+            model_kwargs={"device_map": None}
+        )
     return _local_model
 
 

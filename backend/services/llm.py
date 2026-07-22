@@ -1,63 +1,87 @@
 """
-Gemini LLM wrapper — handles generation, JSON extraction, and chat.
+LLM wrapper — uses OpenRouter (OpenAI-compatible) with Gemini fallback.
+OpenRouter provides access to many models including free ones.
 """
 
 import json
 import logging
 import re
 from typing import Any
-import google.generativeai as genai
+from openai import OpenAI
 from config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Configure SDK once at import time
-if settings.gemini_api_key:
-    genai.configure(api_key=settings.gemini_api_key)
-
-
-def _get_model(temperature: float = 0.2):
-    return genai.GenerativeModel(
-        model_name=settings.gemini_model,
-        generation_config=genai.types.GenerationConfig(temperature=temperature),
+# OpenRouter client (OpenAI-compatible)
+_openrouter_client = None
+if settings.openrouter_api_key:
+    _openrouter_client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=settings.openrouter_api_key,
     )
+    logger.info(f"OpenRouter client initialized. Model: {settings.openrouter_model}")
+else:
+    logger.warning("No OPENROUTER_API_KEY set — LLM calls will fail.")
+
+
+def _chat(prompt: str, temperature: float = 0.2, json_mode: bool = False) -> str:
+    """Send a prompt to OpenRouter and return the text response."""
+    if not _openrouter_client:
+        raise RuntimeError("No LLM API key configured. Set OPENROUTER_API_KEY in .env.")
+
+    kwargs = {
+        "model": settings.openrouter_model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature,
+        "extra_headers": {
+            "HTTP-Referer": "http://localhost:5173",
+            "X-Title": "Expert Knowledge 1.5",
+        },
+    }
+    if json_mode:
+        kwargs["response_format"] = {"type": "json_object"}
+
+    try:
+        response = _openrouter_client.chat.completions.create(**kwargs)
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        err_str = str(e)
+        if "429" in err_str or "quota" in err_str.lower() or "rate" in err_str.lower():
+            raise RuntimeError(
+                "⚠️ API rate limit reached. Please wait 15–30 seconds and try again."
+            ) from e
+        raise
 
 
 def generate_text(prompt: str, temperature: float = 0.2) -> str:
-    """Generate a text response from Gemini."""
-    model = _get_model(temperature)
-    response = model.generate_content(prompt)
-    return response.text.strip()
+    """Generate a text response."""
+    return _chat(prompt, temperature=temperature)
 
 
 def generate_json(prompt: str, temperature: float = 0.1) -> Any:
     """
-    Generate a response expected to be JSON. Extracts JSON even if wrapped in markdown.
+    Generate a JSON response. Tries json_mode first, falls back to text parsing.
     """
-    model = genai.GenerativeModel(
-        model_name=settings.gemini_model,
-        generation_config=genai.types.GenerationConfig(
-            temperature=temperature,
-            response_mime_type="application/json",
-        ),
-    )
-    response = model.generate_content(prompt)
-    text = response.text.strip()
+    try:
+        text = _chat(prompt, temperature=temperature, json_mode=True)
+    except Exception:
+        # Some models don't support json_mode — fall back to plain text
+        text = _chat(prompt, temperature=temperature)
 
-    # Strip markdown code fences if present
+    # Strip markdown fences if present
     text = re.sub(r"^```(?:json)?\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
 
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        logger.warning(f"Could not parse Gemini JSON response: {text[:300]}")
+        logger.warning(f"Could not parse LLM JSON response: {text[:300]}")
         return {}
 
 
 def build_rag_prompt(question: str, context_chunks: list[dict]) -> str:
-    """Build a RAG prompt with context chunks for Gemini."""
+    """Build a RAG prompt with context chunks."""
     context_parts = []
     for i, chunk in enumerate(context_chunks, 1):
         source = f"[Source {i}: {chunk['doc_filename']}, Page {chunk.get('page_number', '?')}]"

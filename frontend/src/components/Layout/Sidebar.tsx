@@ -73,10 +73,10 @@ export default function Sidebar() {
         <div className="p-3.5 flex items-center justify-between border-b border-zinc-200/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded bg-zinc-900 flex items-center justify-center text-white font-extrabold text-lg select-none">
-              Z
+              H
             </div>
             {!isCollapsed && (
-              <span className="font-serif font-bold text-zinc-900 tracking-tight text-sm">z.ai</span>
+              <span className="font-serif font-bold text-zinc-900 tracking-tight text-sm">Helper AI</span>
             )}
           </div>
           <button 
