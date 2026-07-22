@@ -6,8 +6,7 @@ import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from db.supabase_client import get_supabase
-from services.ingestion import ingest_document
-from services.graph_builder import extract_and_store_entities
+from services.ingestion import create_document_record, process_document_background
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["Documents"])
@@ -41,18 +40,16 @@ async def upload_document(
         raise HTTPException(status_code=413, detail="File exceeds 50 MB limit.")
 
     try:
-        doc = await ingest_document(
-            file_bytes=file_bytes,
+        doc = create_document_record(
             filename=file.filename,
             file_size=len(file_bytes),
         )
 
-        # Entity extraction runs async so the upload response is fast
         background_tasks.add_task(
-            _run_entity_extraction,
+            process_document_background,
             doc_id=doc["id"],
-            filename=file.filename,
             file_bytes=file_bytes,
+            filename=file.filename
         )
 
         return JSONResponse(status_code=201, content={"success": True, "document": doc})
@@ -60,19 +57,6 @@ async def upload_document(
     except Exception as exc:
         logger.error(f"Upload failed: {exc}")
         raise HTTPException(status_code=500, detail=str(exc))
-
-
-async def _run_entity_extraction(doc_id: str, filename: str, file_bytes: bytes):
-    """Background task: extract entities from already-ingested chunks."""
-    try:
-        supabase = get_supabase()
-        chunks_resp = supabase.table("chunks").select("content, chunk_index").eq(
-            "document_id", doc_id
-        ).order("chunk_index").execute()
-        chunks = chunks_resp.data or []
-        await extract_and_store_entities(doc_id, filename, chunks)
-    except Exception as exc:
-        logger.error(f"Entity extraction background task failed for {doc_id}: {exc}")
 
 
 @router.get("")

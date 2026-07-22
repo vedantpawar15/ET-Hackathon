@@ -199,21 +199,11 @@ def classify_doc_type(filename: str) -> str:
 # Full ingestion pipeline
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def ingest_document(
-    file_bytes: bytes,
-    filename: str,
-    file_size: int,
-    doc_type: Optional[str] = None,
-) -> dict:
-    """
-    Full pipeline: extract → chunk → embed → store in Supabase.
-    Returns the document record.
-    """
+def create_document_record(filename: str, file_size: int, doc_type: Optional[str] = None) -> dict:
     supabase = get_supabase()
     doc_id = str(uuid.uuid4())
     doc_type = doc_type or classify_doc_type(filename)
 
-    # ── 1. Insert document record ────────────────────────────────────────────
     doc_record = {
         "id": doc_id,
         "filename": filename,
@@ -223,22 +213,26 @@ async def ingest_document(
     }
     supabase.table("documents").insert(doc_record).execute()
     logger.info(f"Document record created: {doc_id} ({filename})")
+    return doc_record
 
+
+def process_document_background(doc_id: str, file_bytes: bytes, filename: str):
+    supabase = get_supabase()
     try:
-        # ── 2. Extract text ──────────────────────────────────────────────────
+        # ── 1. Extract text ──────────────────────────────────────────────────
         pages = extract_text(file_bytes, filename)
         page_count = len(pages)
 
-        # ── 3. Chunk ─────────────────────────────────────────────────────────
+        # ── 2. Chunk ─────────────────────────────────────────────────────────
         chunks = chunk_pages(pages)
         if not chunks:
             raise ValueError("No text content could be extracted from the document.")
 
-        # ── 4. Embed ─────────────────────────────────────────────────────────
+        # ── 3. Embed ─────────────────────────────────────────────────────────
         texts = [c["content"] for c in chunks]
         embeddings, model_used = embed_texts(texts)
 
-        # ── 5. Store chunks ──────────────────────────────────────────────────
+        # ── 4. Store chunks ──────────────────────────────────────────────────
         chunk_records = []
         for chunk, embedding in zip(chunks, embeddings):
             chunk_records.append({
@@ -253,20 +247,21 @@ async def ingest_document(
                 "metadata": {"source": filename},
             })
 
-        # Insert in batches of 50
         batch_size = 50
         for i in range(0, len(chunk_records), batch_size):
             supabase.table("chunks").insert(chunk_records[i : i + batch_size]).execute()
 
         logger.info(f"Stored {len(chunk_records)} chunks for document {doc_id}.")
 
-        # ── 6. Update document status ────────────────────────────────────────
+        # ── 5. Update document status ────────────────────────────────────────
         supabase.table("documents").update({
             "status": "ready",
             "page_count": page_count,
         }).eq("id", doc_id).execute()
 
-        return {**doc_record, "status": "ready", "page_count": page_count, "chunk_count": len(chunks)}
+        # ── 6. Run Entity Extraction ─────────────────────────────────────────
+        from services.graph_builder import extract_and_store_entities
+        extract_and_store_entities(doc_id, filename, chunk_records)
 
     except Exception as exc:
         logger.error(f"Ingestion failed for {filename}: {exc}")
@@ -274,4 +269,3 @@ async def ingest_document(
             "status": "error",
             "error_msg": str(exc),
         }).eq("id", doc_id).execute()
-        raise

@@ -24,6 +24,24 @@ async def lifespan(app: FastAPI):
     logger.info(f"   Gemini model  : {settings.gemini_model}")
     logger.info(f"   Voyage AI key : {'✓ set' if settings.voyage_api_key else '✗ not set (using local fallback)'}")
     logger.info(f"   Supabase URL  : {settings.supabase_url[:40]}…" if settings.supabase_url else "   Supabase URL  : NOT SET")
+
+    # ── Startup recovery: mark orphaned 'processing' docs as 'error' ──────────
+    try:
+        from db.supabase_client import get_supabase
+        supabase = get_supabase()
+        stuck = supabase.table("documents").select("id, filename").eq("status", "processing").execute()
+        if stuck.data:
+            ids = [d["id"] for d in stuck.data]
+            names = [d["filename"] for d in stuck.data]
+            logger.warning(f"⚠️  Found {len(ids)} document(s) stuck in 'processing': {names}")
+            supabase.table("documents").update({
+                "status": "error",
+                "error_msg": "Processing was interrupted by a server restart. Please delete and re-upload this file."
+            }).in_("id", ids).execute()
+            logger.info(f"   Marked {len(ids)} stuck document(s) as 'error'.")
+    except Exception as e:
+        logger.warning(f"Startup recovery check failed (non-fatal): {e}")
+
     yield
     logger.info("🛑 Application shutting down.")
 

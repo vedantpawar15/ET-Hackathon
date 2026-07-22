@@ -29,7 +29,7 @@ ENTITY_COLORS = {
 # Entity Extraction
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def extract_and_store_entities(document_id: str, filename: str, chunks: list[dict]) -> int:
+def extract_and_store_entities(document_id: str, filename: str, chunks: list[dict]) -> int:
     """
     Run Gemini entity extraction on document chunks, store results in Supabase.
     Returns total entities extracted.
