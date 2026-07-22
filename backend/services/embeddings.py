@@ -22,8 +22,7 @@ def _get_local_model():
         logger.info("Loading local fallback embedding model (BAAI/bge-large-en-v1.5)…")
         _local_model = SentenceTransformer(
             "BAAI/bge-large-en-v1.5", 
-            device="cpu",
-            model_kwargs={"device_map": None}
+            device="cpu"
         )
     return _local_model
 

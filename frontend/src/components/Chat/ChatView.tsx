@@ -108,7 +108,7 @@ export default function ChatView() {
           <div className="h-full flex flex-col items-center justify-center px-4 max-w-3xl mx-auto text-center space-y-6">
             <div className="space-y-2.5 animate-slide-up">
               <h1 className="text-[3.25rem] font-serif text-zinc-900 tracking-tight leading-tight select-none">
-                What can I build for you?
+                How can I help you?
               </h1>
               <p className="text-zinc-500 text-[14px] font-normal leading-normal max-w-lg mx-auto">
                 Interact with Helper AI and explore the document knowledge world
@@ -137,22 +137,7 @@ export default function ChatView() {
                   >
                     <Plus size={16} />
                   </button>
-                  <button 
-                    type="button"
-                    onClick={() => toast.success('Web search feature is simulated')}
-                    className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors"
-                    title="Web search"
-                  >
-                    <Globe size={16} />
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => toast.success('Deep Thinking mode enabled')}
-                    className="p-2 rounded-lg hover:bg-zinc-100 text-blue-500 transition-colors"
-                    title="Deep thought model"
-                  >
-                    <Atom size={16} />
-                  </button>
+
                 </div>
 
                 {/* Send button */}
