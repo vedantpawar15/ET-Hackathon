@@ -1,19 +1,20 @@
-import React from 'react'
-import { MessageSquare, Network, FileText, ShieldCheck, Upload } from 'lucide-react'
+import React, { useState } from 'react'
+import { MessageSquare, Network, FileText, ShieldCheck, Upload, PanelLeftClose, PanelLeft, Plus, LogIn } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { useDropzone } from 'react-dropzone'
 import toast from 'react-hot-toast'
 import { uploadDocument } from '@/api'
 
-const NAV_ITEMS = [
-  { id: 'chat',       label: 'Expert Copilot',      icon: MessageSquare },
-  { id: 'graph',      label: 'Knowledge Graph',      icon: Network },
-  { id: 'documents',  label: 'Document Library',     icon: FileText },
-  { id: 'compliance', label: 'Compliance Checker',   icon: ShieldCheck },
-] as const
-
 export default function Sidebar() {
-  const { activeTab, setActiveTab, documents, addDocument, fetchDocuments } = useAppStore()
+  const { activeTab, setActiveTab, documents, addDocument, clearMessages } = useAppStore()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const NAV_ITEMS = [
+    { id: 'chat',       label: isCollapsed ? '' : 'Chat',               icon: MessageSquare },
+    { id: 'compliance', label: isCollapsed ? '' : 'Agent',              icon: ShieldCheck },
+    { id: 'graph',      label: isCollapsed ? '' : 'Knowledge Graph',    icon: Network },
+    { id: 'documents',  label: isCollapsed ? '' : 'Document Library',   icon: FileText },
+  ] as const
 
   const onDrop = async (files: File[]) => {
     for (const file of files) {
@@ -39,69 +40,119 @@ export default function Sidebar() {
   })
 
   return (
-    <aside className="w-60 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-hidden bg-surface-950/50">
-      {/* Navigation */}
-      <nav className="p-3 flex flex-col gap-1">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id)}
-            className={`nav-tab ${activeTab === id ? 'active' : ''}`}
+    <aside 
+      className={`
+        flex-shrink-0 border-r border-zinc-200 bg-[#f4f4f5] flex flex-col justify-between overflow-hidden transition-all duration-300 h-full
+        ${isCollapsed ? 'w-16' : 'w-60'}
+      `}
+      {...getRootProps()}
+    >
+      <input id="pdf-upload-input" {...getInputProps()} />
+      
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Logo and Collapse Toggle */}
+        <div className="p-3.5 flex items-center justify-between border-b border-zinc-200/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-zinc-900 flex items-center justify-center text-white font-extrabold text-lg select-none">
+              Z
+            </div>
+            {!isCollapsed && (
+              <span className="font-serif font-bold text-zinc-900 tracking-tight text-sm">z.ai</span>
+            )}
+          </div>
+          <button 
+            type="button"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 rounded-md hover:bg-zinc-200 text-zinc-600 transition-colors"
           >
-            <Icon size={16} />
-            <span>{label}</span>
+            {isCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
           </button>
-        ))}
-      </nav>
+        </div>
 
-      <div className="px-3">
-        <div className="h-px bg-white/[0.06]" />
+        {/* Navigation Tabs */}
+        <nav className="p-2 flex flex-col gap-1">
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveTab(id)}
+              title={isCollapsed ? (id === 'compliance' ? 'Agent' : id) : ''}
+              className={`
+                flex items-center gap-3 p-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left
+                ${activeTab === id 
+                  ? 'bg-zinc-200 text-zinc-950 font-semibold shadow-sm' 
+                  : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/50'
+                }
+              `}
+            >
+              <Icon size={18} className="flex-shrink-0" />
+              {!isCollapsed && <span>{label}</span>}
+            </button>
+          ))}
+        </nav>
+
+        {/* New Chat Button */}
+        <div className="p-2">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('chat')
+              clearMessages()
+              toast.success('Started a new chat session')
+            }}
+            className={`
+              flex items-center gap-3 p-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left border border-dashed border-zinc-300 hover:border-zinc-500
+              ${isCollapsed ? 'justify-center border-none' : ''}
+              text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/50
+            `}
+            title={isCollapsed ? 'New Chat' : ''}
+          >
+            <Plus size={18} className="flex-shrink-0" />
+            {!isCollapsed && <span>New Chat</span>}
+          </button>
+        </div>
+
+        {/* Upload Zone / Document Count (Only visible when expanded) */}
+        {!isCollapsed && (
+          <div className="p-3 flex-1 flex flex-col justify-end gap-3 overflow-hidden">
+            <div
+              className={`
+                border border-dashed rounded-lg p-3 text-center transition-all duration-200 cursor-pointer bg-white/50
+                ${isDragActive
+                  ? 'border-zinc-900 bg-zinc-100'
+                  : 'border-zinc-300 hover:border-zinc-500 hover:bg-zinc-100/50'
+                }
+              `}
+              onClick={() => (document.getElementById('pdf-upload-input') as HTMLInputElement)?.click()}
+            >
+              <Upload size={16} className="mx-auto mb-1 text-zinc-500" />
+              <p className="text-[10px] font-medium text-zinc-600">
+                {isDragActive ? 'Drop PDFs here' : 'Click to Upload Doc'}
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-between text-[11px] text-zinc-500 px-1">
+              <span>Ingested</span>
+              <span className="font-semibold text-zinc-900">{documents.length} docs</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Upload zone */}
-      <div className="p-3 flex-1 overflow-hidden flex flex-col gap-3">
-        <div
-          {...getRootProps()}
+      {/* User Login Button / Profile at the bottom */}
+      <div className="p-3 border-t border-zinc-200/80">
+        <button 
+          type="button"
+          onClick={() => toast.success('Signed in as Guest User')}
           className={`
-            border-2 border-dashed rounded-xl p-4 text-center transition-all duration-200 cursor-pointer
-            ${isDragActive
-              ? 'border-brand-500 bg-brand-500/10'
-              : 'border-white/[0.10] hover:border-brand-600/60 hover:bg-white/[0.02]'
-            }
+            flex items-center gap-3 p-2 rounded-lg text-xs font-medium text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/50 w-full transition-colors
+            ${isCollapsed ? 'justify-center' : ''}
           `}
-          onClick={() => (document.getElementById('pdf-upload-input') as HTMLInputElement)?.click()}
+          title={isCollapsed ? 'Sign in' : ''}
         >
-          <input id="pdf-upload-input" {...getInputProps()} />
-          <Upload size={20} className={`mx-auto mb-2 ${isDragActive ? 'text-brand-400' : 'text-slate-500'}`} />
-          <p className={`text-xs font-medium ${isDragActive ? 'text-brand-300' : 'text-slate-500'}`}>
-            {isDragActive ? 'Drop PDFs here' : 'Drop or click to upload'}
-          </p>
-          <p className="text-[10px] text-slate-600 mt-0.5">PDF files only</p>
-        </div>
-
-        {/* Doc count */}
-        <div className="glass-panel-light px-3 py-2 flex items-center justify-between">
-          <span className="text-xs text-slate-500">Documents</span>
-          <span className="text-xs font-bold text-brand-400">{documents.length}</span>
-        </div>
-
-        {/* Recent docs */}
-        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
-          {documents.slice(0, 15).map((doc) => (
-            <div
-              key={doc.id}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors cursor-default"
-            >
-              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                doc.status === 'ready' ? 'bg-emerald-400' :
-                doc.status === 'error' ? 'bg-red-400' : 'bg-amber-400 animate-pulse'
-              }`} />
-              <span className="text-[11px] text-slate-400 truncate leading-tight">
-                {doc.filename}
-              </span>
-            </div>
-          ))}
-        </div>
+          <LogIn size={16} className="flex-shrink-0" />
+          {!isCollapsed && <span>Sign in</span>}
+        </button>
       </div>
     </aside>
   )

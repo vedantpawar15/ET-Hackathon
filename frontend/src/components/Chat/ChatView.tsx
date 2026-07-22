@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Trash2, Bot, User, Loader2 } from 'lucide-react'
+import { Trash2, Bot, User, Loader2, Plus, Globe, Atom, ArrowUp, ShieldCheck, Network, FileText } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { sendChat } from '@/api'
 import type { ChatMessage, Citation } from '@/types'
@@ -7,7 +7,6 @@ import CitationChip from './CitationChip'
 import ConfidenceBar from './ConfidenceBar'
 import toast from 'react-hot-toast'
 
-// uuid isn't installed — inline simple generator
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
@@ -50,13 +49,10 @@ export default function ChatView() {
       }
       addMessage(assistantMsg)
 
-      // Highlight cited entities in graph
       if (res.citations?.length) {
-        // Simple heuristic: extract equipment names from answer
         const equipmentPattern = /\b([A-Z]-\d{3}|[A-Z]{1,4}-\d{2,4})\b/g
         const matches = [...(res.answer.matchAll(equipmentPattern))].map(m => m[1])
         if (matches.length) {
-          // This triggers graph highlight — handled in graph view via store
           setHighlightedNodes(matches)
         }
       }
@@ -67,169 +63,272 @@ export default function ChatView() {
     }
   }
 
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-white/[0.06] flex-shrink-0">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-100">Expert Knowledge Copilot</h2>
-          <p className="text-xs text-slate-500">RAG-powered Q&A over your industrial documents</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {filterDocId && (
-            <span className="badge bg-brand-900/60 border border-brand-700/40 text-brand-300 text-xs">
-              Filtered: {documents.find(d => d.id === filterDocId)?.filename.slice(0, 20)}…
-            </span>
-          )}
-          {messages.length > 0 && (
-            <button onClick={clearMessages} className="btn-ghost text-xs gap-1.5">
-              <Trash2 size={13} />
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-12">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-600/30 to-purple-600/30 border border-brand-500/20 flex items-center justify-center">
-              <Bot size={28} className="text-brand-400" />
-            </div>
-            <div>
-              <h3 className="text-slate-300 font-semibold mb-1">Ask about your documents</h3>
-              <p className="text-slate-500 text-sm max-w-sm">
-                Try: "What are the maintenance requirements for Pump P-101?" or "What does OISD-105 say about hot work permits?"
+  const hasMessages = messages.length > 0
+
+  return (
+    <div className="h-full flex flex-col bg-[#fcfcfc] relative overflow-hidden">
+      {/* Background Watermark (Only visible when empty) */}
+      {!hasMessages && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
+          <span className="text-[28rem] font-serif font-black text-zinc-100/50 leading-none">Z</span>
+        </div>
+      )}
+
+      {/* Header bar (Only shown when there are messages to keep clean layout) */}
+      {hasMessages && (
+        <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-200 flex-shrink-0 bg-white z-10">
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">Expert Copilot</h2>
+            <p className="text-[11px] text-zinc-500">RAG-powered Q&A over industrial documents</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {filterDocId && (
+              <span className="badge bg-zinc-100 border border-zinc-200 text-zinc-700 text-xs">
+                Filtered: {documents.find(d => d.id === filterDocId)?.filename.slice(0, 20)}…
+              </span>
+            )}
+            <button onClick={clearMessages} className="btn-ghost text-xs flex items-center gap-1.5 py-1 px-2.5">
+              <Trash2 size={13} />
+              Clear Chat
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main content body */}
+      <div className="flex-1 overflow-y-auto z-10">
+        {!hasMessages ? (
+          /* Landing Screen (Matches chat.z.ai screenshot) */
+          <div className="h-full flex flex-col items-center justify-center px-4 max-w-3xl mx-auto text-center space-y-6">
+            <div className="space-y-2.5 animate-slide-up">
+              <h1 className="text-[3.25rem] font-serif text-zinc-900 tracking-tight leading-tight select-none">
+                What can I build for you?
+              </h1>
+              <p className="text-zinc-500 text-[14px] font-normal leading-normal max-w-lg mx-auto">
+                Interact with z.ai and explore the document knowledge world
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-              {[
-                "What were the findings in the 2024 safety audit?",
-                "What caused the compressor C-204 shutdown?",
-                "What PPE is required for hot work near P-101?",
-                "What are the confined space entry requirements for V-301?",
-              ].map(q => (
+
+            {/* Input Card */}
+            <div className="w-full max-w-2xl bg-white border border-zinc-200/90 shadow-sm rounded-2xl p-3 flex flex-col gap-2 focus-within:border-zinc-400 focus-within:shadow-md transition-all duration-200 mt-2">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={2}
+                placeholder="How can I help today?"
+                className="w-full border-none outline-none text-zinc-950 placeholder-zinc-400 resize-none min-h-[60px] bg-transparent text-sm leading-relaxed p-1"
+              />
+              
+              <div className="flex items-center justify-between border-t border-zinc-100 pt-2.5 mt-1">
+                {/* Action icons */}
+                <div className="flex items-center gap-1">
+                  <button 
+                    type="button"
+                    onClick={() => (document.getElementById('pdf-upload-input') as HTMLButtonElement)?.click()}
+                    className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors"
+                    title="Upload context file"
+                  >
+                    <Plus size={16} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => toast.success('Web search feature is simulated')}
+                    className="p-2 rounded-lg hover:bg-zinc-100 text-zinc-500 transition-colors"
+                    title="Web search"
+                  >
+                    <Globe size={16} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => toast.success('Deep Thinking mode enabled')}
+                    className="p-2 rounded-lg hover:bg-zinc-100 text-blue-500 transition-colors"
+                    title="Deep thought model"
+                  >
+                    <Atom size={16} />
+                  </button>
+                </div>
+
+                {/* Send button */}
                 <button
-                  key={q}
-                  onClick={() => { setInput(q); }}
-                  className="text-left text-xs px-3 py-2 rounded-lg glass-panel-light text-slate-400 hover:text-slate-200 hover:border-brand-600/40 transition-all duration-200"
+                  type="button"
+                  onClick={handleSend}
+                  disabled={!input.trim() || loading}
+                  className={`
+                    w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200
+                    ${input.trim() 
+                      ? 'bg-zinc-900 text-white hover:bg-zinc-800' 
+                      : 'bg-zinc-100 text-zinc-300'
+                    }
+                  `}
                 >
-                  {q}
+                  <ArrowUp size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick action buttons */}
+            <div className="flex flex-wrap justify-center gap-2.5 max-w-lg mt-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              {[
+                { label: 'Compliance Checker', icon: ShieldCheck, tab: 'compliance' },
+                { label: 'Knowledge Graph', icon: Network, tab: 'graph' },
+                { label: 'Document Library', icon: FileText, tab: 'documents' },
+              ].map(({ label, icon: Icon, tab }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setActiveTab(tab as any)}
+                  className="flex items-center gap-2 px-4 py-2 border border-zinc-200 bg-white hover:bg-zinc-50 rounded-xl text-zinc-700 text-xs font-semibold shadow-sm hover:border-zinc-300 transition-all duration-250 active:scale-95"
+                >
+                  <Icon size={14} className="text-zinc-500" />
+                  {label}
                 </button>
               ))}
             </div>
           </div>
-        )}
-
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex gap-3 animate-slide-up ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-          >
-            {/* Avatar */}
-            <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${
-              msg.role === 'user'
-                ? 'bg-brand-700 text-brand-200'
-                : 'bg-gradient-to-br from-purple-700 to-brand-700 text-white'
-            }`}>
-              {msg.role === 'user' ? <User size={13} /> : <Bot size={13} />}
-            </div>
-
-            {/* Bubble */}
-            <div className={`max-w-[75%] space-y-2 ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col`}>
-              <div className={`px-4 py-3 text-sm leading-relaxed ${msg.role === 'user' ? 'msg-user' : 'msg-assistant'}`}>
-                {/* Parse citations in response text */}
-                <MessageContent content={msg.content} citations={msg.citations} onCitationClick={setActiveCitation} />
-              </div>
-
-              {/* Citations row */}
-              {msg.citations && msg.citations.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 px-1">
-                  {msg.citations.map((c) => (
-                    <CitationChip
-                      key={c.index}
-                      citation={c}
-                      active={activeCitation?.index === c.index}
-                      onClick={() => setActiveCitation(activeCitation?.index === c.index ? null : c)}
-                    />
-                  ))}
+        ) : (
+          /* Message List view */
+          <div className="max-w-3xl mx-auto px-6 py-6 space-y-6">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex gap-4 animate-slide-up ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+              >
+                {/* Avatar */}
+                <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${
+                  msg.role === 'user'
+                    ? 'bg-zinc-900 text-white'
+                    : 'bg-zinc-100 border border-zinc-200 text-zinc-900'
+                }`}>
+                  {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                 </div>
-              )}
 
-              {/* Confidence */}
-              {msg.confidence !== undefined && (
-                <ConfidenceBar confidence={msg.confidence} />
-              )}
-
-              {/* Citation detail panel */}
-              {activeCitation && msg.citations?.some(c => c.index === activeCitation.index) && (
-                <div className="glass-panel p-3 text-xs space-y-1.5 max-w-sm animate-fade-in">
-                  <div className="flex items-center gap-2">
-                    <span className="badge bg-brand-900/50 text-brand-300 border border-brand-700/30">
-                      Source {activeCitation.index}
-                    </span>
-                    <span className="text-slate-400 truncate">{activeCitation.doc_filename}</span>
+                {/* Bubble */}
+                <div className={`max-w-[80%] space-y-2.5 ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col`}>
+                  <div className={`px-4 py-3 text-sm leading-relaxed ${
+                    msg.role === 'user' 
+                      ? 'bg-zinc-900 text-white rounded-2xl rounded-tr-xs shadow-sm' 
+                      : 'bg-zinc-100/90 border border-zinc-200/50 rounded-2xl rounded-tl-xs text-zinc-800 shadow-sm'
+                  }`}>
+                    <MessageContent content={msg.content} citations={msg.citations} onCitationClick={setActiveCitation} />
                   </div>
-                  {activeCitation.page_number && (
-                    <p className="text-slate-500">Page {activeCitation.page_number}</p>
-                  )}
-                  <p className="text-slate-300 leading-relaxed border-l-2 border-brand-600/50 pl-2 italic">
-                    "{activeCitation.excerpt}"
-                  </p>
-                  <p className="text-slate-600">Similarity: {(activeCitation.similarity * 100).toFixed(1)}%</p>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
 
-        {loading && (
-          <div className="flex gap-3 animate-fade-in">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-700 to-brand-700 flex items-center justify-center">
-              <Bot size={13} className="text-white" />
-            </div>
-            <div className="msg-assistant px-4 py-3 flex items-center gap-2">
-              <Loader2 size={14} className="animate-spin text-brand-400" />
-              <span className="text-sm text-slate-400">Thinking…</span>
-            </div>
+                  {/* Citations row */}
+                  {msg.citations && msg.citations.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 px-1">
+                      {msg.citations.map((c) => (
+                        <CitationChip
+                          key={c.index}
+                          citation={c}
+                          active={activeCitation?.index === c.index}
+                          onClick={() => setActiveCitation(activeCitation?.index === c.index ? null : c)}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Confidence Bar */}
+                  {msg.confidence !== undefined && (
+                    <ConfidenceBar confidence={msg.confidence} />
+                  )}
+
+                  {/* Citation details panel */}
+                  {activeCitation && msg.citations?.some(c => c.index === activeCitation.index) && (
+                    <div className="w-full max-w-md bg-white border border-zinc-200 rounded-xl p-3.5 text-xs space-y-2 shadow-sm animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="badge bg-zinc-100 border border-zinc-200 text-zinc-700 text-[10px]">
+                            Source {activeCitation.index}
+                          </span>
+                          <span className="text-zinc-500 font-medium truncate max-w-[200px]">{activeCitation.doc_filename}</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-400">Match similarity: {(activeCitation.similarity * 100).toFixed(1)}%</span>
+                      </div>
+                      {activeCitation.page_number && (
+                        <p className="text-zinc-400 font-medium">Page {activeCitation.page_number}</p>
+                      )}
+                      <p className="text-zinc-700 leading-relaxed border-l-2 border-zinc-400 pl-2.5 italic bg-zinc-50/50 py-1 pr-1.5 rounded-r">
+                        "{activeCitation.excerpt}"
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex gap-4 animate-fade-in">
+                <div className="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center">
+                  <Bot size={14} className="text-zinc-900" />
+                </div>
+                <div className="bg-zinc-100/90 border border-zinc-200/50 rounded-2xl rounded-tl-xs px-4 py-3 flex items-center gap-2 shadow-sm">
+                  <Loader2 size={14} className="animate-spin text-zinc-500" />
+                  <span className="text-sm text-zinc-500 font-medium">Thinking…</span>
+                </div>
+              </div>
+            )}
+
+            <div ref={bottomRef} />
           </div>
         )}
-
-        <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0 px-6 py-4 border-t border-white/[0.06]">
-        <div className="flex gap-3">
-          <textarea
-            className="input resize-none min-h-[44px] max-h-32"
-            rows={1}
-            placeholder="Ask a question about your industrial documents…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSend()
-              }
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || loading}
-            className="btn-primary flex-shrink-0 h-11 w-11 flex items-center justify-center p-0"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          </button>
+      {/* Floating Input Box at Bottom (Only shown when there are messages) */}
+      {hasMessages && (
+        <div className="flex-shrink-0 px-4 py-4 border-t border-zinc-200 bg-white">
+          <div className="max-w-2xl mx-auto w-full bg-white border border-zinc-200 shadow-sm rounded-xl p-2.5 flex flex-col gap-1 focus-within:border-zinc-400 transition-all">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              placeholder="Ask a question about your documents…"
+              className="w-full border-none outline-none text-zinc-950 placeholder-zinc-400 resize-none min-h-[38px] max-h-32 bg-transparent text-sm p-1"
+            />
+            <div className="flex justify-between items-center pt-1 border-t border-zinc-100">
+              <div className="text-[10px] text-zinc-400 font-medium pl-1">
+                Press Enter to send · Shift+Enter for new line
+              </div>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!input.trim() || loading}
+                className={`
+                  w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200
+                  ${input.trim() 
+                    ? 'bg-zinc-900 text-white hover:bg-zinc-800' 
+                    : 'bg-zinc-100 text-zinc-300'
+                  }
+                `}
+              >
+                {loading ? <Loader2 size={13} className="animate-spin" /> : <ArrowUp size={13} />}
+              </button>
+            </div>
+          </div>
         </div>
-        <p className="text-[11px] text-slate-600 mt-1.5">Press Enter to send · Shift+Enter for new line</p>
-      </div>
+      )}
+
+      {/* Landing Footer (Only shown when no messages) */}
+      {!hasMessages && (
+        <footer className="w-full py-4 text-center text-[11px] text-zinc-400 border-t border-zinc-200/50 bg-white/40 backdrop-blur-xs z-10 flex-shrink-0 flex items-center justify-center gap-5">
+          <span>Generated by AI. For reference only.</span>
+          <a href="#blog" className="hover:underline hover:text-zinc-600 transition-colors">Tech Blog</a>
+          <a href="#contact" className="hover:underline hover:text-zinc-600 transition-colors">Contact us</a>
+          <a href="#terms" className="hover:underline hover:text-zinc-600 transition-colors">Terms of Service</a>
+          <a href="#privacy" className="hover:underline hover:text-zinc-600 transition-colors">Privacy Policy</a>
+        </footer>
+      )}
     </div>
   )
 }
 
-// Render message content with citation references highlighted
 function MessageContent({
   content,
   citations,
@@ -241,7 +340,6 @@ function MessageContent({
 }) {
   if (!citations?.length) return <span className="whitespace-pre-wrap">{content}</span>
 
-  // Replace [Source N] patterns with clickable spans
   const parts = content.split(/(\[Source \d+\])/g)
   return (
     <span className="whitespace-pre-wrap">
@@ -254,7 +352,7 @@ function MessageContent({
             return (
               <span
                 key={i}
-                className="citation-chip"
+                className="citation-chip inline-flex items-center gap-1 px-1.5 py-0.5 bg-zinc-200 border border-zinc-300/80 text-zinc-700 rounded text-[11px] font-mono cursor-pointer hover:bg-zinc-300 transition-all duration-150 mx-0.5"
                 onClick={() => onCitationClick(cit)}
               >
                 [{idx}]
